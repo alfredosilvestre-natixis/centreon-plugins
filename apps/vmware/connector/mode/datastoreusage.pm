@@ -94,7 +94,7 @@ sub set_counters {
             }
         },
         { label => 'usage', nlabel => 'datastore.space.usage.bytes', set => {
-                key_values => [ { name => 'used_space' }, { name => 'free_space' }, { name => 'prct_used_space' }, { name => 'prct_free_space' }, { name => 'total_space' }, { name => 'display' },  ],
+                key_values => [ { name => 'used_space' }, { name => 'free_space' }, { name => 'prct_used_space' }, { name => 'prct_free_space' }, { name => 'total_space' }, { name => 'display' } ],
                 closure_custom_output => $self->can('custom_usage_output'),
                 perfdatas => [
                     { label => 'used', template => '%d', min => 0, max => 'total_space',
@@ -103,7 +103,7 @@ sub set_counters {
             }
         },
         { label => 'usage-free', nlabel => 'datastore.space.free.bytes', display_ok => 0, set => {
-                key_values => [ { name => 'free_space' }, { name => 'used_space' }, { name => 'prct_used_space' }, { name => 'prct_free_space' }, { name => 'total_space' }, { name => 'display' },  ],
+                key_values => [ { name => 'free_space' }, { name => 'used_space' }, { name => 'prct_used_space' }, { name => 'prct_free_space' }, { name => 'total_space' }, { name => 'display' } ],
                 closure_custom_output => $self->can('custom_usage_output'),
                 perfdatas => [
                     { label => 'free', template => '%d', min => 0, max => 'total_space',
@@ -112,8 +112,8 @@ sub set_counters {
             }
         },
         { label => 'usage-prct', nlabel => 'datastore.space.usage.percentage', display_ok => 0, set => {
-                key_values => [ { name => 'prct_used_space' }, { name => 'display' } ],
-                output_template => 'used: %.2f %%',
+                key_values => [ { name => 'prct_used_space' }, { name => 'free_space' }, { name => 'used_space' }, { name => 'prct_free_space' }, { name => 'total_space' }, { name => 'display' } ],
+                closure_custom_output => $self->can('custom_usage_output'),
                 perfdatas => [
                     { label => 'used_prct', template => '%.2f', min => 0, max => 100,
                       unit => '%', label_extra_instance => 1, instance_use => 'display' }
@@ -150,7 +150,7 @@ sub new {
         'filter'             => { name => 'filter' },
         'scope-datacenter:s' => { name => 'scope_datacenter' },
         'filter-host:s'      => { name => 'filter_host' },
-        'units:s'            => { name => 'units', default => '%' },
+        'units:s'            => { name => 'units', default => '' },
         'free'               => { name => 'free' }
     });
 
@@ -173,11 +173,6 @@ sub check_options {
     );
 
     $self->SUPER::check_options(%options);
-
-    if (!defined($self->{option_results}->{units}) || $self->{option_results}->{units} !~ /^(%|B)$/) {
-        $self->{output}->add_option_msg(short_msg => "Wrong units option '" . $self->{option_results}->{units} . "'.");
-        $self->{output}->option_exit();
-    }
 }
 
 sub custom_usage_calc {

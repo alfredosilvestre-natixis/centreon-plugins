@@ -69,7 +69,7 @@ sub check_options {
     $self->{hostname} = (defined($self->{option_results}->{hostname})) ? shift(@{$self->{option_results}->{hostname}}) : undef;
     $self->{vplex_username} = (defined($self->{option_results}->{vplex_username})) ? shift(@{$self->{option_results}->{vplex_username}}) : '';
     $self->{vplex_password} = (defined($self->{option_results}->{vplex_password})) ? shift(@{$self->{option_results}->{vplex_password}}) : '';
-    $self->{timeout} = (defined($self->{option_results}->{timeout})) ? shift(@{$self->{option_results}->{timeout}}) : 10;
+    $self->{timeout} = (defined($self->{option_results}->{timeout})) ? shift(@{$self->{option_results}->{timeout}}) : 30;
  
     if (!defined($self->{hostname})) {
         $self->{output}->add_option_msg(short_msg => "Need to specify hostname option.");
@@ -107,8 +107,12 @@ sub get_items {
     $self->settings();
 
     if (defined($options{parent})) {
-        if (defined($options{$options{parent}}) && $options{$options{parent}} ne '') {
-            $options{url} .= $options{parent} . '-' . $options{engine} . '/';
+        if (defined($options{parent_filter}) && $options{parent_filter} ne '') {
+            if ($options{parent_filter} =~ /^[0-9\-]+$/) {
+                $options{url} .= $options{parent_filter_prefix} . $options{parent_filter} . '/';
+            } else {
+                $options{url} .= $options{parent_filter} . '/';
+            }
         } else {
             $options{url} .= '*' . '/';
         }
@@ -117,7 +121,7 @@ sub get_items {
         $options{url} .= $options{obj} . '/';
     }
     $options{url} .= '*';
-    
+
     my $response = $self->{http}->request(url_path => $options{url});
     my $decoded;
     eval {
@@ -127,26 +131,26 @@ sub get_items {
         $self->{output}->add_option_msg(short_msg => "Cannot decode json response");
         $self->{output}->option_exit();
     }
-        
+
     my $items = {};
     foreach my $context (@{$decoded->{response}->{context}}) {
         my $engine_name;
         
         if (defined($options{parent})) {
-            $context->{parent} =~ /\/$options{parent}-(.*?)\//;
-            $engine_name = $options{parent} . '-' . $1;
+            $context->{parent} =~ /$options{parent_select}/;
+            $engine_name = $1;
             $items->{$engine_name} = {} if (!defined($items->{$engine_name}));
         }
-        
+
         my $attributes = {};
         foreach my $attribute (@{$context->{attributes}}) {
-            $attributes->{$attribute->{name}} = $attribute->{value};
+            $attributes->{ $attribute->{name} } = $attribute->{value};
         }
         
         if (defined($engine_name)) {
-            $items->{$engine_name}->{$attributes->{name}} = $attributes;
+            $items->{$engine_name}->{ $attributes->{name} } = $attributes;
         } else {
-            $items->{$attributes->{name}} = $attributes;
+            $items->{ $attributes->{name} } = $attributes;
         }
     }
 

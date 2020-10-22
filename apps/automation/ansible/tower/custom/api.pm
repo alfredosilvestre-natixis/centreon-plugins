@@ -167,6 +167,9 @@ sub request_api {
 
         push @$results, @{$decoded->{results}};
         last if (!defined($decoded->{next}));
+        last if (defined($options{nonext}) && $options{nonext} == 1);
+
+        $page++;
     }
 
     return $results;
@@ -202,7 +205,10 @@ sub tower_list_schedules {
     my $schedules = $self->request_api(endpoint => '/schedules/');
     if (defined($options{add_job_status})) {
         for (my $i = 0; $i < scalar(@$schedules); $i++) {
-            my $job = $self->request_api(force_endpoint => '/schedules/' . $schedules->[$i]->{id} . '/jobs/?order_by=-id&page_size=1');
+            my $job = $self->request_api(
+                force_endpoint => '/schedules/' . $schedules->[$i]->{id} . '/jobs/?order_by=-id&page_size=1',
+                nonext => 1
+            );
             $schedules->[$i]->{last_job} = $job->[0];
         }
     }
